@@ -348,6 +348,9 @@ final class PokeConnectManager: ObservableObject {
     func resetSetup() {
         ngrokAuthtokenConfigured = false
         pokeIntegrationConnected = false
+        discoveredPublicURL = ""
+        autoConnectOnLaunch = false
+        lastError = ""
         appendLog("Setup status reset.")
     }
 

@@ -32,6 +32,14 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                     }
+                    Button(role: .destructive) {
+                        manager.resetSetup()
+                    } label: {
+                        Label("Reset Setup", systemImage: "arrow.counterclockwise.circle")
+                    }
+                    Text("Clears setup status and the generated ngrok URL. Your pasted token text is kept.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Launch") {
