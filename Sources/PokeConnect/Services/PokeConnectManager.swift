@@ -42,6 +42,16 @@ final class PokeConnectManager: ObservableObject {
         didSet { UserDefaults.standard.set(ngrokCommandPath, forKey: Defaults.ngrokCommandPath) }
     }
 
+    @Published var ngrokDomain: String {
+        didSet {
+            UserDefaults.standard.set(ngrokDomain, forKey: Defaults.ngrokDomain)
+            if oldValue != ngrokDomain,
+               customNgrokCommand.contains(oldValue) || customNgrokCommand.contains(Self.placeholderDomain) {
+                customNgrokCommand = defaultTunnelCommand()
+            }
+        }
+    }
+
     @Published var ngrokAuthtoken: String {
         didSet {
             UserDefaults.standard.set(ngrokAuthtoken, forKey: Defaults.ngrokAuthtoken)
@@ -59,13 +69,10 @@ final class PokeConnectManager: ObservableObject {
         didSet { UserDefaults.standard.set(pokeIntegrationConnected, forKey: Defaults.pokeIntegrationConnected) }
     }
 
-    let publicHost = "uncounted-chummy-tidings.ngrok-free.dev"
-    let publicURL = "https://uncounted-chummy-tidings.ngrok-free.dev"
-    let mcpURL = "https://uncounted-chummy-tidings.ngrok-free.dev/sse"
     let ngrokAuthtokenURL = URL(string: "https://dashboard.ngrok.com/get-started/your-authtoken")!
     let pokeIntegrationURL = URL(string: "https://poke.com/integrations/new")!
     let defaultWorkingDirectory = BundledServerInstaller.installedPath()
-    private let legacyWorkingDirectory = "/Users/peach/Documents/Codex/2026-06-20/brew-install-node/mac-local-manager"
+    private static let placeholderDomain = "your-ngrok-domain.ngrok-free.dev"
 
     private let runner = ShellRunner()
     private var refreshTask: Task<Void, Never>?
@@ -79,6 +86,7 @@ final class PokeConnectManager: ObservableObject {
         static let workingDirectory = "workingDirectory"
         static let pm2CommandPath = "pm2CommandPath"
         static let ngrokCommandPath = "ngrokCommandPath"
+        static let ngrokDomain = "ngrokDomain"
         static let ngrokAuthtoken = "ngrokAuthtoken"
         static let ngrokAuthtokenConfigured = "ngrokAuthtokenConfigured"
         static let pokeIntegrationConnected = "pokeIntegrationConnected"
@@ -88,10 +96,6 @@ final class PokeConnectManager: ObservableObject {
         static let server = "pm2 start npm --name \"mac-local-server\" -- start"
         static let legacyServer = "pm2 start npx --name \"mac-local-server\" -- ts-node server.ts"
         static let stopServer = "pm2 stop mac-local-server"
-        static let tunnel = "ngrok http --url=uncounted-chummy-tidings.ngrok-free.dev 3000"
-        static let stopTunnel = """
-        pids=$(ps ax -o pid= -o command= | awk '/[n]grok/ && /uncounted-chummy-tidings[.]ngrok-free[.]dev/ {print $1}'); if [ -n "$pids" ]; then kill $pids; fi
-        """
     }
 
     init() {
@@ -109,11 +113,17 @@ final class PokeConnectManager: ObservableObject {
         self.customServerCommand = storedServerCommand.isEmpty || storedServerCommand == Commands.legacyServer
             ? Commands.server
             : storedServerCommand
-        self.customNgrokCommand = defaults.string(forKey: Defaults.customNgrokCommand) ?? Commands.tunnel
+        let storedDomain = defaults.string(forKey: Defaults.ngrokDomain) ?? ""
+        let initialNgrokDomain = storedDomain.isEmpty ? Self.placeholderDomain : storedDomain
+        self.ngrokDomain = initialNgrokDomain
+        let storedTunnelCommand = defaults.string(forKey: Defaults.customNgrokCommand) ?? ""
+        self.customNgrokCommand = storedTunnelCommand.isEmpty
+            ? "ngrok http --url=\(initialNgrokDomain) 3000"
+            : storedTunnelCommand
 
         let storedDir = defaults.string(forKey: Defaults.workingDirectory) ?? ""
         let trimmedDir = storedDir.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.workingDirectory = trimmedDir.isEmpty || trimmedDir == "/Users/peach/Documents/Codex/2026-06-20/brew-install-node/mac-local-manager"
+        self.workingDirectory = trimmedDir.isEmpty
             ? BundledServerInstaller.installedPath()
             : storedDir
 
@@ -156,11 +166,27 @@ final class PokeConnectManager: ObservableObject {
         overallStatus == .online ? "Disconnect" : "Connect"
     }
 
+    var publicHost: String {
+        ngrokDomain.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var publicURL: String {
+        "https://\(publicHost)"
+    }
+
+    var mcpURL: String {
+        "\(publicURL)/sse"
+    }
+
     var isSetupComplete: Bool {
-        ngrokAuthtokenConfigured && pokeIntegrationConnected
+        isNgrokDomainConfigured && ngrokAuthtokenConfigured && pokeIntegrationConnected
     }
 
     var setupStatusMessage: String {
+        if !isNgrokDomainConfigured {
+            return "Set your ngrok static domain before using Poke Connect."
+        }
+
         if !ngrokAuthtokenConfigured {
             return "Add and save your ngrok authtoken before using Poke Connect."
         }
@@ -308,7 +334,7 @@ final class PokeConnectManager: ObservableObject {
 
     func resetCommandsToDefaults() {
         customServerCommand = Commands.server
-        customNgrokCommand = Commands.tunnel
+        customNgrokCommand = defaultTunnelCommand()
     }
 
     func useBundledServerFolder() {
@@ -353,6 +379,7 @@ final class PokeConnectManager: ObservableObject {
     }
 
     private func checkTunnelRunning() async throws -> Bool {
+        guard isNgrokDomainConfigured else { return false }
         let result = try await runner.run(ngrokProcessListCommand())
         return result.stdout.contains(publicHost)
     }
@@ -439,6 +466,10 @@ final class PokeConnectManager: ObservableObject {
     }
 
     private func validateSetupComplete() throws {
+        guard isNgrokDomainConfigured else {
+            throw PokeConnectError.setupIncomplete("Set your ngrok static domain in Settings first.")
+        }
+
         guard ngrokAuthtokenConfigured else {
             throw PokeConnectError.setupIncomplete("Save your ngrok authtoken in Settings first.")
         }
@@ -473,7 +504,11 @@ final class PokeConnectManager: ObservableObject {
     }
 
     private func effectiveTunnelCommand() -> String {
-        replaceLeadingBinary(in: customNgrokCommand, defaultBinary: "ngrok", configuredPath: ngrokCommandPath)
+        if customNgrokCommand.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+            customNgrokCommand.contains(Self.placeholderDomain) {
+            return defaultTunnelCommand()
+        }
+        return replaceLeadingBinary(in: customNgrokCommand, defaultBinary: "ngrok", configuredPath: ngrokCommandPath)
     }
 
     private func stopServerCommand() -> String {
@@ -481,11 +516,23 @@ final class PokeConnectManager: ObservableObject {
     }
 
     private func stopTunnelCommand() -> String {
-        Commands.stopTunnel
+        let escapedHost = publicHost.replacingOccurrences(of: ".", with: "[.]")
+        return """
+        pids=$(ps ax -o pid= -o command= | awk '/[n]grok/ && /\(escapedHost)/ {print $1}'); if [ -n "$pids" ]; then kill $pids; fi
+        """
     }
 
     private func ngrokProcessListCommand() -> String {
         "ps ax -o pid= -o command= | grep '[n]grok' || true"
+    }
+
+    private var isNgrokDomainConfigured: Bool {
+        let trimmed = publicHost
+        return !trimmed.isEmpty && trimmed != Self.placeholderDomain && trimmed.contains(".ngrok")
+    }
+
+    private func defaultTunnelCommand() -> String {
+        "\(ngrokCommandPath.shellQuoted) http --url=\(publicHost) 3000"
     }
 
     private func replaceLeadingBinary(in command: String, defaultBinary: String, configuredPath: String) -> String {

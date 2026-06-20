@@ -127,4 +127,4 @@ echo "Opening Poke Connect..."
 open "$INSTALL_PATH"
 
 echo "Done."
-echo "MCP URL: https://uncounted-chummy-tidings.ngrok-free.dev/sse"
+echo "Set your ngrok static domain in Poke Connect Settings, then copy the MCP URL from the app."

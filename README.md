@@ -52,12 +52,6 @@ If you want to use a different copy, open the menu bar item, click **Settings**,
 
 To switch back to the bundled copy, click **Use Bundled Server**.
 
-The previous local development folder was:
-
-```text
-/Users/peach/Documents/Codex/2026-06-20/brew-install-node/mac-local-manager
-```
-
 The default server command is:
 
 ```bash
@@ -109,7 +103,7 @@ If ngrok is not found:
 The default tunnel command is:
 
 ```bash
-ngrok http --url=uncounted-chummy-tidings.ngrok-free.dev 3000
+ngrok http --url=YOUR_NGROK_STATIC_DOMAIN 3000
 ```
 
 ## ngrok Authtoken
@@ -138,7 +132,7 @@ The main **Connect**, **Restart**, and menu-bar **Copy URL** controls remain dis
 The default stop command for ngrok is:
 
 ```bash
-pkill -f "ngrok http --url=uncounted-chummy-tidings.ngrok-free.dev 3000"
+kill the ngrok process that matches YOUR_NGROK_STATIC_DOMAIN
 ```
 
 ## Verify It Is Working
@@ -153,7 +147,7 @@ pkill -f "ngrok http --url=uncounted-chummy-tidings.ngrok-free.dev 3000"
 5. Click **Copy URL** and confirm the clipboard contains the MCP SSE URL:
 
 ```text
-https://uncounted-chummy-tidings.ngrok-free.dev/sse
+https://YOUR_NGROK_STATIC_DOMAIN/sse
 ```
 
 To connect this to Poke, open **Settings** and click **Connect Poke**, or visit:

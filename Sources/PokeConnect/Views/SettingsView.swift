@@ -13,6 +13,11 @@ struct SettingsView: View {
             Form {
                 Section("Setup") {
                     SetupStepRow(
+                        title: "ngrok static domain",
+                        isComplete: manager.publicHost != "your-ngrok-domain.ngrok-free.dev" && manager.publicHost.contains(".ngrok"),
+                        detail: manager.publicHost.contains(".ngrok") ? manager.publicHost : "Enter your own reserved ngrok domain."
+                    )
+                    SetupStepRow(
                         title: "ngrok authtoken",
                         isComplete: manager.ngrokAuthtokenConfigured,
                         detail: manager.ngrokAuthtokenConfigured ? "Saved to ngrok." : "Required before anything else can run."
@@ -61,6 +66,10 @@ struct SettingsView: View {
                 }
 
                 Section("ngrok") {
+                    TextField("Static domain", text: $manager.ngrokDomain)
+                    Text("Example: your-domain.ngrok-free.dev")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     SecureField("Your Authtoken", text: $manager.ngrokAuthtoken)
                     HStack {
                         Button {
