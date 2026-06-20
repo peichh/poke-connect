@@ -1,5 +1,7 @@
 # Poke Connect
 
+![Poke Connect logo](Sources/PokeConnect/Resources/AppIcon.png)
+
 Poke Connect is a native macOS menu bar app for starting and stopping a local PM2 server plus an ngrok tunnel.
 
 ## Build and Run

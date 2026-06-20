@@ -18,6 +18,8 @@ let package = Package(
             name: "PokeConnect",
             path: "Sources/PokeConnect",
             resources: [
+                .copy("Resources/AppIcon.icns"),
+                .copy("Resources/AppIcon.png"),
                 .copy("Resources/mac-local-manager")
             ]
         )
