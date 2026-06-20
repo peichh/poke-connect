@@ -6,6 +6,10 @@ APP_NAME="Poke Connect"
 APP_BUNDLE="$APP_NAME.app"
 BUNDLE_ID="dev.local.PokeConnect"
 INSTALL_DIR="/Applications"
+if [[ ! -w "$INSTALL_DIR" ]]; then
+  INSTALL_DIR="$HOME/Applications"
+  mkdir -p "$INSTALL_DIR"
+fi
 INSTALL_PATH="$INSTALL_DIR/$APP_BUNDLE"
 POKE_URL="https://poke.com/integrations/new"
 
@@ -97,8 +101,18 @@ fi
 if [[ -n "$NGROK_AUTHTOKEN" ]]; then
   echo "Saving ngrok authtoken preference..."
   defaults write "$BUNDLE_ID" ngrokAuthtoken -string "$NGROK_AUTHTOKEN"
-  defaults write "$BUNDLE_ID" ngrokAuthtokenConfigured -bool false
-  echo "Open Poke Connect Settings and click 'Save to ngrok' once to write the token to ngrok."
+  if command -v ngrok >/dev/null 2>&1; then
+    echo "Writing authtoken to ngrok config..."
+    if ngrok config add-authtoken "$NGROK_AUTHTOKEN"; then
+      defaults write "$BUNDLE_ID" ngrokAuthtokenConfigured -bool true
+    else
+      defaults write "$BUNDLE_ID" ngrokAuthtokenConfigured -bool false
+      echo "ngrok token setup failed. Open Poke Connect Settings and click 'Save to ngrok' once."
+    fi
+  else
+    defaults write "$BUNDLE_ID" ngrokAuthtokenConfigured -bool false
+    echo "ngrok CLI was not found. Install ngrok, then open Poke Connect Settings and click 'Save to ngrok' once."
+  fi
 fi
 
 if [[ "$MARK_POKE_CONNECTED" == "true" ]]; then

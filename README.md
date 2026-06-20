@@ -34,9 +34,9 @@ Optional first-run setup:
 curl -fsSL https://raw.githubusercontent.com/peichh/poke-connect/main/script/install.sh | bash -s -- --ngrok-authtoken YOUR_NGROK_TOKEN --open-poke
 ```
 
-The installer downloads `PokeConnect.zip` from the latest GitHub Release, installs `Poke Connect.app` to `/Applications`, clears the download quarantine flag for the app bundle, and opens the app.
+The installer downloads `PokeConnect.zip` from the latest GitHub Release, installs `Poke Connect.app` to `/Applications` or `~/Applications`, clears the download quarantine flag for the app bundle, and opens the app.
 
-If you pass `--ngrok-authtoken`, the installer saves the token into app preferences. You still need to open Settings once and click **Save to ngrok**, so the token is written into ngrok's own config on that Mac.
+If you pass `--ngrok-authtoken`, the installer saves the token into app preferences and runs `ngrok config add-authtoken` once when the ngrok CLI is available. If ngrok is not installed yet, open Settings later and click **Save to ngrok**.
 
 ## Configure the Working Directory
 
