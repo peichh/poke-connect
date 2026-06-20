@@ -345,12 +345,21 @@ final class PokeConnectManager: ObservableObject {
         appendLog("Poke MCP integration marked connected.")
     }
 
-    func resetSetup() {
+    func resetSetup() async {
+        appendLog("Resetting setup...")
+        _ = try? await runner.run(stopTunnelCommand())
+        _ = try? await runner.run(stopServerCommand(), workingDirectory: effectiveWorkingDirectory())
+        try? FileManager.default.removeItem(at: ngrokLogURL)
         ngrokAuthtokenConfigured = false
         pokeIntegrationConnected = false
         discoveredPublicURL = ""
         autoConnectOnLaunch = false
         lastError = ""
+        serverStatus = .stopped
+        tunnelStatus = .stopped
+        overallStatus = .offline
+        await refreshStatus()
+        discoveredPublicURL = ""
         appendLog("Setup status reset.")
     }
 

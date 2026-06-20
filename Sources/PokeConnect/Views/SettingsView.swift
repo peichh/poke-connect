@@ -4,6 +4,7 @@ import AppKit
 struct SettingsView: View {
     @ObservedObject var manager: PokeConnectManager
     @State private var isConfiguringNgrok = false
+    @State private var isResettingSetup = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -33,11 +34,16 @@ struct SettingsView: View {
                             .foregroundStyle(.orange)
                     }
                     Button(role: .destructive) {
-                        manager.resetSetup()
+                        isResettingSetup = true
+                        Task {
+                            await manager.resetSetup()
+                            isResettingSetup = false
+                        }
                     } label: {
                         Label("Reset Setup", systemImage: "arrow.counterclockwise.circle")
                     }
-                    Text("Clears setup status and the generated ngrok URL. Your pasted token text is kept.")
+                    .disabled(isResettingSetup)
+                    Text("Stops the bridge, clears setup status and the generated ngrok URL. Your pasted token text is kept.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
