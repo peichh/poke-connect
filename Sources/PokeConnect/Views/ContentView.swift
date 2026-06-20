@@ -63,7 +63,8 @@ struct ContentView: View {
             Text("Public URL")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(manager.publicHost)
+            Text(manager.publicHost.isEmpty ? "Not generated yet" : manager.publicHost)
+                .foregroundStyle(manager.publicHost.isEmpty ? .secondary : .primary)
                 .textSelection(.enabled)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -99,7 +100,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(isWorking || (!manager.isSetupComplete && manager.overallStatus != .online))
+            .disabled(isWorking || (!manager.ngrokAuthtokenConfigured && manager.overallStatus != .online))
 
             HStack {
                 Button {
@@ -107,7 +108,7 @@ struct ContentView: View {
                 } label: {
                     Label("Restart", systemImage: "arrow.clockwise")
                 }
-                .disabled(isWorking || !manager.isSetupComplete)
+                .disabled(isWorking || !manager.ngrokAuthtokenConfigured)
 
                 Button {
                     openWindow(id: "logs")
@@ -120,7 +121,7 @@ struct ContentView: View {
                 } label: {
                     Label("Copy URL", systemImage: "doc.on.doc")
                 }
-                .disabled(!manager.isSetupComplete)
+                .disabled(manager.mcpURL.isEmpty)
             }
 
             HStack {

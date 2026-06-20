@@ -103,8 +103,10 @@ If ngrok is not found:
 The default tunnel command is:
 
 ```bash
-ngrok http --url=YOUR_NGROK_STATIC_DOMAIN 3000
+ngrok http 3000
 ```
+
+If you have a reserved static ngrok domain, enter it in Settings and the app will start ngrok with `--url=YOUR_DOMAIN`.
 
 ## ngrok Authtoken
 
@@ -116,23 +118,26 @@ If you do not have a token yet, click **Get Authtoken** or open:
 https://dashboard.ngrok.com/get-started/your-authtoken
 ```
 
-Poke Connect locks the main bridge controls until this step succeeds.
+Poke Connect locks the main **Connect** and **Restart** controls until this step succeeds.
 
 ## Poke MCP Setup
 
 After saving the ngrok authtoken:
 
-1. Copy the MCP URL from Settings.
-2. Click **Connect Poke** or open `https://poke.com/integrations/new`.
-3. Paste the MCP URL into Poke and finish creating the integration.
-4. Return to Poke Connect and click **I Connected Poke**.
+1. Click **Connect** in the menu bar UI.
+2. Poke Connect starts the local server and ngrok tunnel.
+3. The app reads the generated public ngrok URL and appends `/sse`.
+4. Copy the MCP URL from Settings or the menu bar.
+5. Click **Connect Poke** or open `https://poke.com/integrations/new`.
+6. Paste the MCP URL into Poke and finish creating the integration.
+7. Return to Poke Connect and click **I Connected Poke**.
 
-The main **Connect**, **Restart**, and menu-bar **Copy URL** controls remain disabled until both ngrok and Poke setup are complete.
+The menu-bar **Copy URL** and Poke setup buttons remain disabled until ngrok has generated a public URL.
 
 The default stop command for ngrok is:
 
 ```bash
-kill the ngrok process that matches YOUR_NGROK_STATIC_DOMAIN
+kill the ngrok process that matches the generated tunnel or port 3000
 ```
 
 ## Verify It Is Working
@@ -147,7 +152,7 @@ kill the ngrok process that matches YOUR_NGROK_STATIC_DOMAIN
 5. Click **Copy URL** and confirm the clipboard contains the MCP SSE URL:
 
 ```text
-https://YOUR_NGROK_STATIC_DOMAIN/sse
+https://YOUR_NGROK_URL/sse
 ```
 
 To connect this to Poke, open **Settings** and click **Connect Poke**, or visit:

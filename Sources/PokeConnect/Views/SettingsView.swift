@@ -13,9 +13,9 @@ struct SettingsView: View {
             Form {
                 Section("Setup") {
                     SetupStepRow(
-                        title: "ngrok static domain",
-                        isComplete: manager.publicHost != "your-ngrok-domain.ngrok-free.dev" && manager.publicHost.contains(".ngrok"),
-                        detail: manager.publicHost.contains(".ngrok") ? manager.publicHost : "Enter your own reserved ngrok domain."
+                        title: "ngrok tunnel",
+                        isComplete: manager.tunnelStatus == .running && !manager.mcpURL.isEmpty,
+                        detail: manager.mcpURL.isEmpty ? "Start the bridge to generate a public MCP URL." : manager.mcpURL
                     )
                     SetupStepRow(
                         title: "ngrok authtoken",
@@ -25,7 +25,7 @@ struct SettingsView: View {
                     SetupStepRow(
                         title: "Poke MCP integration",
                         isComplete: manager.pokeIntegrationConnected,
-                        detail: manager.pokeIntegrationConnected ? "Marked connected." : "Connect the MCP URL in Poke after ngrok is ready."
+                        detail: manager.pokeIntegrationConnected ? "Marked connected." : "Connect the generated MCP URL in Poke."
                     )
                     if !manager.isSetupComplete {
                         Text(manager.setupStatusMessage)
@@ -66,8 +66,8 @@ struct SettingsView: View {
                 }
 
                 Section("ngrok") {
-                    TextField("Static domain", text: $manager.ngrokDomain)
-                    Text("Example: your-domain.ngrok-free.dev")
+                    TextField("Static domain (optional)", text: $manager.ngrokDomain)
+                    Text("Leave empty to let ngrok generate the public URL after the tunnel starts.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     SecureField("Your Authtoken", text: $manager.ngrokAuthtoken)
@@ -89,7 +89,7 @@ struct SettingsView: View {
                         }
                         .disabled(manager.ngrokAuthtoken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isConfiguringNgrok)
                     }
-                    Text("Required before starting a reserved ngrok domain. If you do not have a token yet, open the ngrok dashboard link above.")
+                    Text("Save the token first. Then click Connect in the menu bar to start ngrok and generate the MCP URL.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -102,22 +102,23 @@ struct SettingsView: View {
                         } label: {
                             Label("Copy MCP URL", systemImage: "doc.on.doc")
                         }
+                        .disabled(manager.mcpURL.isEmpty)
 
                         Button {
                             manager.openPokeIntegrationPage()
                         } label: {
                             Label("Connect Poke", systemImage: "link")
                         }
-                        .disabled(!manager.ngrokAuthtokenConfigured)
+                        .disabled(manager.mcpURL.isEmpty)
 
                         Button {
                             manager.markPokeIntegrationConnected()
                         } label: {
                             Label("I Connected Poke", systemImage: "checkmark.circle")
                         }
-                        .disabled(!manager.ngrokAuthtokenConfigured)
+                        .disabled(manager.mcpURL.isEmpty)
                     }
-                    Text("First save your ngrok authtoken. Then open Poke, paste the MCP URL, finish the integration, and confirm here.")
+                    Text("First save your ngrok authtoken, then start the bridge. After ngrok generates the MCP URL, paste it into Poke and confirm here.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -135,8 +136,8 @@ struct SettingsView: View {
                 }
 
                 Section("Status") {
-                    LabeledContent("Public URL", value: manager.publicURL)
-                    LabeledContent("MCP URL", value: manager.mcpURL)
+                    LabeledContent("Public URL", value: manager.publicURL.isEmpty ? "Not generated yet" : manager.publicURL)
+                    LabeledContent("MCP URL", value: manager.mcpURL.isEmpty ? "Not generated yet" : manager.mcpURL)
                     if !manager.lastError.isEmpty {
                         Text(manager.lastError)
                             .font(.caption)
