@@ -258,8 +258,7 @@ final class PokeConnectManager: ObservableObject {
         appendLog("Disconnecting Poke bridge...")
 
         do {
-            _ = try? await runCommand(stopTunnelCommand(), workingDirectory: nil, label: "Stop tunnel")
-            _ = try? await runCommand(stopServerCommand(), workingDirectory: effectiveWorkingDirectory(), label: "Stop server")
+            await stopAllBridgeProcesses()
             await refreshStatus()
         }
     }
@@ -347,20 +346,16 @@ final class PokeConnectManager: ObservableObject {
 
     func resetSetup() async {
         appendLog("Resetting setup...")
-        _ = try? await runner.run(stopTunnelCommand())
-        _ = try? await runner.run(stopServerCommand(), workingDirectory: effectiveWorkingDirectory())
-        try? FileManager.default.removeItem(at: ngrokLogURL)
-        ngrokAuthtokenConfigured = false
-        pokeIntegrationConnected = false
-        discoveredPublicURL = ""
-        autoConnectOnLaunch = false
+        overallStatus = .starting
         lastError = ""
+        await stopAllBridgeProcesses()
+        try? FileManager.default.removeItem(at: ngrokLogURL)
+        discoveredPublicURL = ""
         serverStatus = .stopped
         tunnelStatus = .stopped
         overallStatus = .offline
-        await refreshStatus()
-        discoveredPublicURL = ""
-        appendLog("Setup status reset.")
+        appendLog("Setup status reset. Restarting bridge...")
+        await connect()
     }
 
     func quit() {
@@ -448,6 +443,15 @@ final class PokeConnectManager: ObservableObject {
         } catch {
             appendLog("Unable to read ngrok process output: \(error.localizedDescription)")
         }
+    }
+
+    private func stopAllBridgeProcesses() async {
+        appendLog("Stopping all node, ngrok, and PM2 processes...")
+        _ = try? await runner.run("\(pm2CommandPath.shellQuoted) delete all || true", workingDirectory: effectiveWorkingDirectory())
+        _ = try? await runner.run("\(pm2CommandPath.shellQuoted) kill || true", workingDirectory: effectiveWorkingDirectory())
+        _ = try? await runner.run("pkill -x ngrok || true")
+        _ = try? await runner.run("pkill -x node || true")
+        try? await Task.sleep(for: .milliseconds(500))
     }
 
     private func updateOverallStatus() {
