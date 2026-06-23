@@ -259,6 +259,7 @@ final class PokeConnectManager: ObservableObject {
 
         do {
             await stopAllBridgeProcesses()
+            discoveredPublicURL = ""
             await refreshStatus()
         }
     }
@@ -351,11 +352,12 @@ final class PokeConnectManager: ObservableObject {
         await stopAllBridgeProcesses()
         try? FileManager.default.removeItem(at: ngrokLogURL)
         discoveredPublicURL = ""
+        pokeIntegrationConnected = false
+        autoConnectOnLaunch = false
         serverStatus = .stopped
         tunnelStatus = .stopped
         overallStatus = .offline
-        appendLog("Setup status reset. Restarting bridge...")
-        await connect()
+        appendLog("Setup status reset.")
     }
 
     func quit() {
@@ -409,9 +411,14 @@ final class PokeConnectManager: ObservableObject {
     }
 
     private func checkTunnelRunning() async throws -> Bool {
-        await refreshNgrokPublicURL()
         let result = try await runner.run(ngrokProcessListCommand())
-        return result.stdout.contains("ngrok") && (result.stdout.contains("http 3000") || result.stdout.contains("http --url="))
+        let isRunning = result.stdout.contains("ngrok") && (result.stdout.contains("http 3000") || result.stdout.contains("http --url="))
+        if isRunning {
+            await refreshNgrokPublicURL()
+        } else if configuredNgrokDomain.isEmpty {
+            discoveredPublicURL = ""
+        }
+        return isRunning
     }
 
     @discardableResult
@@ -446,11 +453,9 @@ final class PokeConnectManager: ObservableObject {
     }
 
     private func stopAllBridgeProcesses() async {
-        appendLog("Stopping all node, ngrok, and PM2 processes...")
-        _ = try? await runner.run("\(pm2CommandPath.shellQuoted) delete all || true", workingDirectory: effectiveWorkingDirectory())
-        _ = try? await runner.run("\(pm2CommandPath.shellQuoted) kill || true", workingDirectory: effectiveWorkingDirectory())
-        _ = try? await runner.run("pkill -x ngrok || true")
-        _ = try? await runner.run("pkill -x node || true")
+        appendLog("Stopping Poke bridge processes...")
+        _ = try? await runner.run(stopTunnelCommand())
+        _ = try? await runner.run(stopServerCommand(), workingDirectory: effectiveWorkingDirectory())
         try? await Task.sleep(for: .milliseconds(500))
     }
 

@@ -43,7 +43,7 @@ struct SettingsView: View {
                         Label("Reset Setup", systemImage: "arrow.counterclockwise.circle")
                     }
                     .disabled(isResettingSetup)
-                    Text("Stops all node, ngrok, and PM2 processes, clears the generated ngrok URL, then starts the bridge again.")
+                    Text("Stops the bridge, clears the generated ngrok URL, disables auto-connect, and keeps your token text.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
